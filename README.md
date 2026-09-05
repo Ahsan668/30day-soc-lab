@@ -6,6 +6,8 @@ follow steps, but actually diagnose and fix the networking, service, and configu
 problems that came up along the way, the same way a junior analyst would in a real
 environment.
 
+Built entirely on local hardware using VirtualBox, rather than the cloud platform (Vultr) the standard challenge suggests — meaning all VM networking, DHCP, and inter-VM connectivity had to be configured and troubleshot manually rather than relying on a cloud provider's pre-wired networking.
+
 ## Tech Stack
 
 - **Elasticsearch** — log storage and indexing
@@ -14,7 +16,9 @@ environment.
 - **Elastic Agent** — endpoint log shipping, deployed on the monitored Linux endpoint
 - **Ubuntu Linux** — monitored endpoint (`linuxt`) and Elastic Stack host (`theanalyst`)
 - **Kali Linux** — attack simulation box
-- **Windows Server** — additional monitored endpoint, Elastic Agent enrolled
+- **Windows Server 2022** — additional monitored endpoint, Elastic Agent enrolled
+- **Sysmon** — installed on Windows Server (default configuration) for endpoint telemetry
+- **draw.io / diagrams.net** — used for the lab's logical architecture diagram
 - **VirtualBox** — multi-VM lab environment (NAT + Host-Only networking)
 - **Hydra** — SSH brute-force simulation tool
 
@@ -65,11 +69,20 @@ private/RFC1918 addresses with no public GeoIP mapping — rather than assuming 
 pipeline was broken — and identified more appropriate visualization types for
 internal-to-internal lab traffic.
 
+**6. Extended detection validation to a Windows endpoint via RDP brute-force**
+Ran an RDP brute-force simulation against the Windows Server 2022 endpoint using Hydra and confirmed failed logon events reached Kibana Discover, validating the Sysmon -> Elastic Agent -> Elasticsearch -> Kibana pipeline on Windows, not just Linux.
+
+**7. Built a saved detection rule, not just an ad-hoc search**
+Converted the manual Discover query used to validate SSH brute-force events into a
+custom query rule under Kibana Security > Rules — the actual difference between
+analyst-driven log searching and scheduled, automated detection.
+
 ## Status
 
-This lab reflects work through **Day 14** of the 30-day challenge. Networking, agent
-deployment, and attack-simulation/log-validation are complete through this point. See
-`PROGRESS.md` for the day-by-day breakdown, including what's still in progress.
+This lab covers **Days 1-15** of the 30-day challenge, fully documented day by day in
+`PROGRESS.md` — from initial architecture planning through Elastic Stack deployment,
+endpoint enrollment, SSH/RDP brute-force simulation, attack validation in Kibana, and
+RDP security concepts. Days 16-30 are not yet covered in this repo.
 
 ## Notes on Scope
 

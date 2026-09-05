@@ -16,5 +16,6 @@ during the Hydra brute-force run.
 6. Save and return -> add to dashboard, titled "Failed SSH Logins Over Time"
 
 ## Status
-**Not yet confirmed complete.** Confirm the chart renders with a visible spike matching
-the attack window, then save it to a named dashboard and export it into this folder.
+**Confirmed complete.** Built and saved to a dashboard. Export the dashboard JSON
+(Stack Management -> Saved Objects -> find it -> Export) into this folder alongside a
+screenshot, per `SCREENSHOT_CHECKLIST.md`.
