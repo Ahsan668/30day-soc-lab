@@ -1,87 +1,82 @@
 # MyDFIR 30-Day SOC Analyst Challenge — Home Lab
 
-A hands-on SOC/DFIR home lab built while working through the MyDFIR 30-Day SOC Analyst
-Challenge. The goal was to stand up a working detection pipeline from scratch — not just
-follow steps, but actually diagnose and fix the networking, service, and configuration
-problems that came up along the way, the same way a junior analyst would in a real
-environment.
+A hands-on SOC analyst lab built entirely on local hardware using VirtualBox, following
+the MyDFIR 30-Day SOC Analyst Challenge curriculum. All infrastructure runs locally
+rather than on a cloud platform — an intentional constraint that added real networking
+and hardware challenges throughout the build.
 
-Built entirely on local hardware using VirtualBox, rather than the cloud platform (Vultr) the standard challenge suggests — meaning all VM networking, DHCP, and inter-VM connectivity had to be configured and troubleshot manually rather than relying on a cloud provider's pre-wired networking.
+## What was built
 
-## Tech Stack
+- **SIEM**: Elasticsearch + Kibana + Fleet Server on a single Ubuntu VM (`theanalyst`)
+- **Monitored endpoints**: Windows Server 2022 and Ubuntu Server 20.04 (`linuxt`)
+- **Attack box**: Kali Linux
+- **C2 server**: Mythic on Oracle Cloud Free Tier (Ubuntu 22.04, ARM)
+- **Agents**: Elastic Agent on both endpoints, enrolled into self-hosted Fleet Server
+- **Sysmon**: SwiftOnSecurity config on Windows Server (Event IDs 1, 3, 5, 7, 11+)
 
-- **Elasticsearch** — log storage and indexing
-- **Kibana** — visualization and Discover-based log querying
-- **Fleet Server** — central agent management, self-hosted (self-signed TLS cert)
-- **Elastic Agent** — endpoint log shipping, deployed on the monitored Linux endpoint
-- **Ubuntu Linux** — monitored endpoint (`linuxt`) and Elastic Stack host (`theanalyst`)
-- **Kali Linux** — attack simulation box
-- **Windows Server 2022** — additional monitored endpoint, Elastic Agent enrolled
-- **Sysmon** — installed on Windows Server (default configuration) for endpoint telemetry
-- **draw.io / diagrams.net** — used for the lab's logical architecture diagram
-- **VirtualBox** — multi-VM lab environment (NAT + Host-Only networking)
-- **Hydra** — SSH brute-force simulation tool
+## Lab network
 
-## Repo Structure
+| VM | Role | IP |
+|---|---|---|
+| `theanalyst` | Elasticsearch + Kibana + Fleet Server | `192.168.10.10` |
+| `linuxt` | Ubuntu target endpoint | `192.168.56.102` |
+| Windows Server 2022 | Windows target endpoint | `192.168.56.104` |
+| Kali Linux | Attack box | `192.168.56.103` |
+| `mythic-c2` (Oracle Cloud) | Mythic C2 server | `141.148.194.147` |
+
+## What was accomplished
+
+### Infrastructure
+- Full ELK Stack deployed and configured locally (not cloud)
+- Fleet Server managing two enrolled Elastic Agents
+- Sysmon deployed with SwiftOnSecurity config on Windows Server
+- Mythic C2 server deployed on Oracle Cloud Always Free tier
+
+### Attack simulation
+- SSH brute-force attack (Hydra) against Ubuntu endpoint — credentials cracked
+- RDP brute-force attack (ncrack) against Windows Server — credentials cracked
+  - Crowbar and Hydra RDP modules documented as incompatible with Windows Server 2022
+    RDP stack — ncrack succeeded where they failed
+- Mythic Apollo C2 payload built, delivered, and executed — active callback confirmed
+
+### Detection and monitoring
+- SSH brute-force detection rule — confirmed firing alerts
+- RDP brute-force detection rule (Event ID 4625) — confirmed firing alerts
+- GeoIP world map dashboard — confirmed working with test public IP document
+- C2 detection dashboard — three tables covering process creation (Event ID 1),
+  network connections (Event ID 3), and Defender disabled (Event ID 5001)
+
+### Troubleshooting documented
+- Elastic Agent "previously unenrolled" crash loop after snapshot restores
+- Host disk-full events causing VirtualBox VM suspension cascades
+- NLA and SecurityLayer blocking RDP brute-force tool compatibility
+- Docker iptables FORWARD/INPUT REJECT rules blocking non-Docker port traffic
+- Winlogbeat subprocess not spawning in Elastic Agent 8.11.x (known compatibility issue)
+
+## Repository structure
 
 ```
-├── README.md                    <- you are here
-├── PROGRESS.md                  <- day-by-day log
-├── network-setup/               <- netplan fixes, DHCP/adapter troubleshooting
-├── elastic-stack-deployment/    <- Fleet Server + Elastic Agent install/enroll
-├── attack-simulation/           <- Hydra brute-force commands and notes
-├── detection-validation/        <- Discover queries, findings, GeoIP investigation
-├── dashboards/                  <- Kibana visualization/dashboard exports
-└── screenshots/                 <- supporting screenshots, referenced by each section
+mydfir-30day-soc-lab/
+├── README.md
+├── PROGRESS.md
+├── SCREENSHOT_CHECKLIST.md
+├── network-setup/
+│   └── lab-network-config.md
+├── elastic-stack-deployment/
+│   ├── elk-stack-setup.md
+│   └── resource-troubleshooting.md
+├── attack-simulation/
+│   ├── hydra-ssh-bruteforce.md
+│   ├── hydra-rdp-bruteforce.md
+│   └── mythic-c2-setup.md
+├── detection-validation/
+│   ├── detection-rule-ssh-bruteforce.md
+│   └── detection-rule-rdp-bruteforce.md
+└── dashboards/
+    ├── geoip-dashboard.md
+    └── c2-detection-dashboard.md
 ```
 
-Each subfolder has its own README explaining what's in it.
+## Current status
 
-## What This Demonstrates
-
-**1. Built a multi-VM detection lab from the ground up on VirtualBox**
-Configured a segmented lab network (NAT for internet/updates, Host-Only for isolated
-inter-VM traffic) across four VMs, including diagnosing why VMs on paired NAT adapters
-couldn't reach each other and correcting the architecture to use a shared Host-Only
-segment instead.
-
-**2. Diagnosed and resolved real Linux networking failures**
-Root-caused a downed network interface to a missing netplan configuration, found and
-fixed a one-character interface-name typo that was silently preventing configuration
-from applying, and resolved a disabled DHCP server on the lab's Host-Only network that
-was leaving hosts with no IPv4 address.
-
-**3. Deployed and troubleshot a self-hosted Elastic Stack detection pipeline**
-Installed and enrolled Elastic Agent into a self-hosted Fleet Server, resolved a
-self-signed certificate trust failure (`x509: certificate signed by unknown authority`),
-and diagnosed a misleading "enrolled but offline" state caused by using the wrong CLI
-subcommand (`enroll` vs `install`) — the agent needs `install` to run as a persistent
-systemd service, not just complete a one-time handshake.
-
-**4. Simulated an SSH brute-force attack and validated end-to-end log visibility**
-Used Hydra from a Kali attack box to generate failed SSH authentication attempts against
-the monitored endpoint, then confirmed the events were correctly shipped, indexed, and
-queryable in Kibana Discover, with accurate timestamps.
-
-**5. Investigated a dashboard data gap and identified the correct root cause**
-When a GeoIP world-map panel showed no data, diagnosed that the source IPs involved were
-private/RFC1918 addresses with no public GeoIP mapping — rather than assuming the
-pipeline was broken — and identified more appropriate visualization types for
-internal-to-internal lab traffic.
-
-**6. Extended detection validation to a Windows endpoint via RDP brute-force**
-Ran an RDP brute-force simulation against the Windows Server 2022 endpoint using Hydra and confirmed failed logon events reached Kibana Discover, validating the Sysmon -> Elastic Agent -> Elasticsearch -> Kibana pipeline on Windows, not just Linux.
-
-## Status
-
-This lab covers **Days 1-14** of the 30-day challenge, fully documented day by day in
-`PROGRESS.md` — from initial architecture planning through Elastic Stack deployment,
-endpoint enrollment, SSH/RDP brute-force simulation, and attack validation in Kibana.
-Days 15-30 are not yet covered in this repo.
-
-## Notes on Scope
-
-This is a personal lab environment, not a production deployment. TLS certificate
-verification was intentionally disabled (`--insecure`) for Fleet Server enrollment,
-which is appropriate for an isolated lab with a self-signed cert but would not be
-appropriate in production.
+Work through the C2 detection dashboard phase documented. Further work ongoing.
