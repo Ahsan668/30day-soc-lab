@@ -89,8 +89,7 @@ pre-configured networking.
 ## Additional work — Resource troubleshooting
 
 - Diagnosed a Kibana detection rule execution failure: 20-minute timeout caused by
-  memory pressure on `theanalyst` (single VM running Elasticsearch + Kibana + Fleet
-  Server with 0B swap). Fixed with clean service restart.
+  memory pressure on `theanalyst`. Fixed with clean service restart.
 - Diagnosed repeated "previously unenrolled" Elastic Agent crash loop on Windows Server
   — caused by snapshot restores reverting agent enrollment state. Fixed by re-enrolling
   with fresh token each time. Documented as expected behavior after snapshot restores.
@@ -105,9 +104,8 @@ pre-configured networking.
 - Diagnosed GeoIP map showing no data for RDP attacks (same root cause as SSH: private
   RFC1918 source IPs have no GeoIP mapping).
 - Manually inserted a test document with a real public IP (`8.8.8.8`) into the correct
-  Elasticsearch data stream (`logs-system.security-default`) to prove the GeoIP
-  pipeline works correctly when given a real public IP. United States appeared on the
-  map as expected.
+  Elasticsearch data stream to prove the GeoIP pipeline works correctly when given a
+  real public IP. United States appeared on the map as expected.
 
 ## Additional work — Mythic C2 server (Oracle Cloud)
 
@@ -124,7 +122,7 @@ pre-configured networking.
 - Built an Apollo payload (WinExe format, callback host `http://141.148.194.147`,
   callback port 80, 10-second interval).
 - Transferred payload to Windows Server via Python HTTP server.
-- Executed payload on Windows Server — **confirmed active C2 callback in Mythic**.
+- Executed payload on Windows Server — confirmed active C2 callback in Mythic.
 
 ## Additional work — C2 detection dashboards
 
@@ -153,6 +151,53 @@ pre-configured networking.
 - Together these three tables cover the full C2 kill chain: execution → C2
   communication → defense evasion.
 
-## Not yet documented
+## Additional work — Mythic C2 investigation
 
-Further work is ongoing and will be documented here as completed.
+- Investigated the Apollo C2 agent activity in Kibana as a SOC analyst:
+  - Used Sysmon Event ID 1 (process creation) to identify `servicehost.exe` running
+    from `C:\Users\Public\Downloads\` — a non-standard path, a clear IOC
+  - Used ProcessGuid as a pivot point to correlate all events from this specific process
+  - Used Sysmon Event ID 3 (network connection) to identify repeated outbound callbacks
+    to `141.148.194.147:80` at 10-second intervals — classic C2 beaconing pattern
+  - Used Sysmon Event ID 11 (file creation) to identify files written by the payload
+  - Noted that custom-built C2 payloads typically have 0 AV detections on VirusTotal,
+    demonstrating why signature-based detection alone is insufficient
+
+## Additional work — osTicket ticketing system
+
+- Deployed osTicket on a dedicated Ubuntu 22.04 VM on Oracle Cloud Free Tier
+  (IP: `141.148.196.50`, 1 OCPU/2GB RAM).
+- Installed LAMP stack (Apache, PHP, MariaDB) and configured osTicket v1.18.1.
+- Diagnosed and fixed multiple osTicket API issues:
+  - Modified `include/class.api.php` to fix IP bypass logic for `0.0.0.0` entries
+  - Fixed `getApiKey()` function to properly look up API keys from the database
+    rather than returning the raw header string
+- Created osTicket API key and configured Kibana webhook connector pointing to
+  `http://141.148.196.50/api/tickets.json`
+- Attached osTicket webhook connector to both SSH and RDP brute-force detection rules
+- Confirmed end-to-end: Kibana alert fires → webhook calls osTicket API → ticket
+  created automatically in osTicket staff portal (`http://141.148.196.50/scp/`)
+- Ticket body includes alert name, severity, timestamp, and direct link back to the
+  Kibana alert for analyst investigation
+
+## Additional work — Elastic Defend (EDR)
+
+- Installed Elastic Defend integration on the Windows Server endpoint via Fleet:
+  - Configuration: Traditional Endpoints, Complete EDR (requires 30-day trial)
+  - Attached to the Windows-Endpoint agent policy
+- Verified endpoint appears in Security → Manage → Endpoints with Healthy status
+- Tested detection: ran Apollo payload (`servicehost.exe`) on Windows Server
+  — Elastic Defend immediately blocked execution and generated a
+  "Malware - Prevented - Elastic Endgame" alert
+- Configured automated response action on the Malware Prevention rule:
+  - Response action: Isolate host
+  - Effect: when malware is detected, Windows Server is automatically isolated from
+    the network, cutting off the attacker's C2 connection while preserving the machine
+    for forensic investigation
+- Confirmed host isolation worked: machine unreachable from network after payload
+  execution, then released via Security → Manage → Endpoints → Actions → Release host
+- Key learning: Elastic Defend provides real-time prevention independently of Sysmon,
+  generating its own rich telemetry. Free tier supports prevention and detection;
+  host isolation requires trial/paid license.
+
+## Further work ongoing and will be documented here as completed.

@@ -11,8 +11,10 @@ and hardware challenges throughout the build.
 - **Monitored endpoints**: Windows Server 2022 and Ubuntu Server 20.04 (`linuxt`)
 - **Attack box**: Kali Linux
 - **C2 server**: Mythic on Oracle Cloud Free Tier (Ubuntu 22.04, ARM)
+- **Ticketing system**: osTicket on Oracle Cloud Free Tier (Ubuntu 22.04)
 - **Agents**: Elastic Agent on both endpoints, enrolled into self-hosted Fleet Server
 - **Sysmon**: SwiftOnSecurity config on Windows Server (Event IDs 1, 3, 5, 7, 11+)
+- **EDR**: Elastic Defend on Windows Server (Complete EDR, 30-day trial)
 
 ## Lab network
 
@@ -23,6 +25,7 @@ and hardware challenges throughout the build.
 | Windows Server 2022 | Windows target endpoint | `192.168.56.104` |
 | Kali Linux | Attack box | `192.168.56.103` |
 | `mythic-c2` (Oracle Cloud) | Mythic C2 server | `141.148.194.147` |
+| `osticket-server` (Oracle Cloud) | osTicket ticketing system | `141.148.196.50` |
 
 ## What was accomplished
 
@@ -31,6 +34,8 @@ and hardware challenges throughout the build.
 - Fleet Server managing two enrolled Elastic Agents
 - Sysmon deployed with SwiftOnSecurity config on Windows Server
 - Mythic C2 server deployed on Oracle Cloud Always Free tier
+- osTicket deployed on Oracle Cloud Always Free tier
+- Elastic Defend (EDR) installed on Windows Server endpoint
 
 ### Attack simulation
 - SSH brute-force attack (Hydra) against Ubuntu endpoint — credentials cracked
@@ -38,6 +43,7 @@ and hardware challenges throughout the build.
   - Crowbar and Hydra RDP modules documented as incompatible with Windows Server 2022
     RDP stack — ncrack succeeded where they failed
 - Mythic Apollo C2 payload built, delivered, and executed — active callback confirmed
+- C2 investigation: traced attack chain using Sysmon Event IDs 1, 3, and 11
 
 ### Detection and monitoring
 - SSH brute-force detection rule — confirmed firing alerts
@@ -45,6 +51,14 @@ and hardware challenges throughout the build.
 - GeoIP world map dashboard — confirmed working with test public IP document
 - C2 detection dashboard — three tables covering process creation (Event ID 1),
   network connections (Event ID 3), and Defender disabled (Event ID 5001)
+- Elastic Defend malware prevention — confirmed blocking Apollo payload in real time
+- Automated host isolation response action configured on malware prevention rule
+
+### Ticketing system integration
+- osTicket integrated with Kibana via webhook connector
+- SSH and RDP detection rules automatically create osTicket tickets when alerts fire
+- Tickets include alert name, severity, timestamp, and direct Kibana alert link
+- Fixed osTicket API source code bug preventing IP-unrestricted API key validation
 
 ### Troubleshooting documented
 - Elastic Agent "previously unenrolled" crash loop after snapshot restores
@@ -52,14 +66,20 @@ and hardware challenges throughout the build.
 - NLA and SecurityLayer blocking RDP brute-force tool compatibility
 - Docker iptables FORWARD/INPUT REJECT rules blocking non-Docker port traffic
 - Winlogbeat subprocess not spawning in Elastic Agent 8.11.x (known compatibility issue)
+- osTicket API `getApiKey()` returning raw string instead of database object (source
+  code fix applied to `include/class.api.php`)
 
 ## Repository structure
 
 ```
-mydfir-30day-soc-lab/
+30day-soc-lab/
 ├── README.md
 ├── PROGRESS.md
 ├── SCREENSHOT_CHECKLIST.md
+├── diagrams/
+│   ├── lab-architecture.drawio
+│   └── mythic-attack-diagram.drawio
+├── screenshots/
 ├── network-setup/
 │   └── lab-network-config.md
 ├── elastic-stack-deployment/
@@ -79,4 +99,4 @@ mydfir-30day-soc-lab/
 
 ## Current status
 
-Work through the C2 detection dashboard phase documented. Further work ongoing.
+Challenge complete. All major components built, tested, and documented.

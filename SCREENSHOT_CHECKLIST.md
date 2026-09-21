@@ -56,3 +56,15 @@ All screenshots are stored in the `screenshots/` folder.
 - [x] Dashboard 1 — Process Creation table (Event ID 1) — `dashboard-process-creation.png`
 - [x] Dashboard 2 — Network Connection table (Event ID 3) — `dashboard-network-connection.png`
 - [x] Dashboard 3 — Defender Disabled table (Event ID 5001) — `dashboard-defender-disabled.png`
+
+## osTicket
+
+- [ ] osTicket staff portal login page — `osticket-staff-portal.png`
+- [ ] osTicket ticket created by Kibana alert — `osticket-ticket-created.png`
+- [ ] Kibana webhook connector configured — `kibana-osticket-connector.png`
+
+## Elastic Defend
+
+- [ ] Elastic Defend endpoint showing Healthy — `elastic-defend-endpoint-healthy.png`
+- [ ] Malware Prevention alert in Kibana — `elastic-defend-malware-alert.png`
+- [ ] Host isolation confirmed (packet loss from Kali) — `elastic-defend-host-isolated.png`
