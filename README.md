@@ -1,7 +1,7 @@
-# MyDFIR 30-Day SOC Analyst Challenge — Home Lab
+# 30-Day SOC Analyst — Home Lab
 
 A hands-on SOC analyst lab built entirely on local hardware using VirtualBox, following
-the MyDFIR 30-Day SOC Analyst Challenge curriculum. All infrastructure runs locally
+the 30-Day SOC Analyst curriculum. All infrastructure runs locally
 rather than on a cloud platform — an intentional constraint that added real networking
 and hardware challenges throughout the build.
 
